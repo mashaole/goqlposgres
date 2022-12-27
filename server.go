@@ -32,14 +32,10 @@ func main() {
 		port = defaultPort
 	}
 	userRepo := postgres.UsersRepo{DB: DB}
-	c := graph.Config{Resolvers: &graph.Resolver{
-		MeetupsRepo: postgres.MeetupsRepo{DB: DB},
-		UsersRepo:   postgres.UsersRepo{DB: DB},
-	}}
 
 	router := chi.NewRouter()
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowedOrigins:   []string{"http://localhost:8000"},
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)
@@ -47,12 +43,15 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(customMiddleware.AuthMiddleware(userRepo))
-
+	c := graph.Config{Resolvers: &graph.Resolver{
+		MeetupsRepo: postgres.MeetupsRepo{DB: DB},
+		UsersRepo:   userRepo,
+	}}
 	queryHandler := handler.NewDefaultServer(graph.NewExecutableSchema(c))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", graph.DataloaderMiddleware(DB, queryHandler))
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", graph.DataloaderMiddleware(DB, queryHandler))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }

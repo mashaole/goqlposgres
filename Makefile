@@ -11,3 +11,9 @@ start:
 
 build:
 				go build
+
+dbcreate:
+				migrate -path "postgres/migrations" -database "$(DB_URL)" up
+
+dbdrop:
+				migrate -path "postgres/migrations" -database "$(DB_URL)" drop

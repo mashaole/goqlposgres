@@ -65,7 +65,7 @@ func parseToken(r *http.Request) (*jwt.Token, error) {
 		t := []byte(os.Getenv("JWT_SECRET"))
 		return t, nil
 	})
-	return jwtToken, errors.New(err.Error())
+	return jwtToken, errors.Unwrap(err)
 }
 
 func GetCurrentUserFromCTX(ctx context.Context) (*models.User, error) {

@@ -45,6 +45,11 @@ input RegisterInput {
   lastName: String!
 }
 
+input LoginInput {
+  email: String!
+  password: String!
+}
+
 input NewMeetup {
   name: String!
   description: String!
@@ -55,6 +60,7 @@ input UpdateMeetup {
 }
 
 type Mutation {
+  login(input: LoginInput!): AuthResponse!
   register(input: RegisterInput!): AuthResponse!
   createMeetup(input: NewMeetup!): Meetup!
   updateMeetup(id: ID!, input: UpdateMeetup!): Meetup!

@@ -8,8 +8,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"goqlposgress/middleware"
 	"goqlposgress/models"
 	"log"
+)
+
+var (
+	ErrBadCredentials  = errors.New("incorrect email/password ")
+	ErrUnauthenticated = errors.New("unauthenticated")
 )
 
 // User is the resolver for the user field.
@@ -17,14 +23,37 @@ func (r *meetupResolver) User(ctx context.Context, obj *models.Meetup) (*models.
 	return getUserLoader(ctx).Load(obj.UserID)
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
+	user, err := r.UsersRepo.GetUserByEmail(input.Email)
+	if err != nil {
+		return nil, ErrBadCredentials
+	}
+
+	err = user.ComparePassword(input.Password)
+	if err != nil {
+		return nil, ErrBadCredentials
+	}
+
+	token, err := user.GenToken()
+	if err != nil {
+		return nil, ErrBadCredentials
+	}
+
+	return &models.AuthResponse{
+		AuthToken: token,
+		User:      user,
+	}, nil
+}
+
 // Register is the resolver for the register field.
 func (r *mutationResolver) Register(ctx context.Context, input models.RegisterInput) (*models.AuthResponse, error) {
 	_, err := r.UsersRepo.GetUserByEmail(input.Email)
-	if err != nil {
+	if err == nil {
 		return nil, errors.New("email already in use")
 	}
 	_, err = r.UsersRepo.GetUserByUsername(input.Username)
-	if err != nil {
+	if err == nil {
 		return nil, errors.New("username already in use")
 	}
 	user := &models.User{
@@ -55,16 +84,23 @@ func (r *mutationResolver) Register(ctx context.Context, input models.RegisterIn
 		return nil, err
 	}
 
-	// token, err := GenToken()
-	// if err != nil {
-	// 	log.Printf("error while generating the token: %v", err)
-	// 	return nil, errors.New("something went wrong")
-	// }
-	return nil, nil
+	token, err := user.GenToken()
+	if err != nil {
+		log.Printf("error while generating the token: %v", err)
+		return nil, errors.New("something went wrong")
+	}
+	return &models.AuthResponse{
+		AuthToken: token,
+		User:      user,
+	}, nil
 }
 
 // CreateMeetup is the resolver for the createMeetup field.
 func (r *mutationResolver) CreateMeetup(ctx context.Context, input models.NewMeetup) (*models.Meetup, error) {
+	currentUser, err := middleware.GetCurrentUserFromCTX(ctx)
+	if err != nil {
+		return nil, ErrUnauthenticated
+	}
 	if len(input.Name) < 3 {
 		return nil, errors.New("name not long enough")
 	}
@@ -75,7 +111,7 @@ func (r *mutationResolver) CreateMeetup(ctx context.Context, input models.NewMee
 	meetup := &models.Meetup{
 		Name:        input.Name,
 		Description: input.Description,
-		UserID:      "1",
+		UserID:      currentUser.ID,
 	}
 	return r.MeetupsRepo.CreateMeetup(meetup)
 }

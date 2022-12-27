@@ -29,6 +29,6 @@ func (u *UsersRepo) GetUserByUsername(username string) (*models.User, error) {
 	return u.GetUserByField("username", username)
 }
 func (u *UsersRepo) CreateUser(tx *pg.Tx, user *models.User) (*models.User, error) {
-	_, err := tx.Model(&user).Returning("*").Insert()
+	_, err := tx.Model(user).Returning("*").Insert()
 	return user, err
 }
