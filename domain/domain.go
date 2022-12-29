@@ -1,6 +1,16 @@
 package domain
 
-import "goqlposgress/postgres"
+import (
+	"errors"
+	"goqlposgress/models"
+	"goqlposgress/postgres"
+)
+
+var (
+	ErrBadCredentials  = errors.New("incorrect email/password ")
+	ErrUnauthenticated = errors.New("unauthenticated")
+	ErrForbidden       = errors.New("unauthorized")
+)
 
 type Domain struct {
 	UsersRepo   postgres.UsersRepo
@@ -9,4 +19,12 @@ type Domain struct {
 
 func NewDomain(usersRepo postgres.UsersRepo, meetupsRepo postgres.MeetupsRepo) *Domain {
 	return &Domain{UsersRepo: usersRepo, MeetupsRepo: meetupsRepo}
+}
+
+type Ownable interface {
+	IsOwner(user *models.User) bool
+}
+
+func checkOwnership(o Ownable, user *models.User) bool {
+	return o.IsOwner(user)
 }

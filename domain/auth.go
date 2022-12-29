@@ -7,11 +7,6 @@ import (
 	"log"
 )
 
-var (
-	ErrBadCredentials  = errors.New("incorrect email/password ")
-	ErrUnauthenticated = errors.New("unauthenticated")
-)
-
 // Login is the resolver for the login field.
 func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
 	user, err := d.UsersRepo.GetUserByEmail(input.Email)
