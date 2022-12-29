@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"context"
-	"errors"
+
+	"github.com/pkg/errors"
+
 	"goqlposgress/models"
 	"goqlposgress/postgres"
 	"net/http"
@@ -65,7 +67,7 @@ func parseToken(r *http.Request) (*jwt.Token, error) {
 		t := []byte(os.Getenv("JWT_SECRET"))
 		return t, nil
 	})
-	return jwtToken, errors.Unwrap(err)
+	return jwtToken, errors.Wrap(err, "parseToken  error")
 }
 
 func GetCurrentUserFromCTX(ctx context.Context) (*models.User, error) {

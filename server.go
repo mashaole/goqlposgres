@@ -1,6 +1,7 @@
 package main
 
 import (
+	"goqlposgress/domain"
 	"goqlposgress/graph"
 	"goqlposgress/postgres"
 	"log"
@@ -21,9 +22,9 @@ const defaultPort = "8080"
 
 func main() {
 	DB := postgres.New(&pg.Options{
-		User:     "PostgresDBUsername",
-		Password: "PostgresDBPassword",
-		Database: "meetmeup_dev",
+		User:     os.Getenv("DB_USERNAME"),
+		Password: os.Getenv("DB_PASSWORDS"),
+		Database: os.Getenv("DB_NAME"),
 	})
 	defer DB.Close()
 	DB.AddQueryHook(postgres.DBLogger{})
@@ -35,7 +36,7 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8000"},
+		AllowedOrigins:   []string{"http://localhost:" + defaultPort},
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)
@@ -43,10 +44,8 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(customMiddleware.AuthMiddleware(userRepo))
-	c := graph.Config{Resolvers: &graph.Resolver{
-		MeetupsRepo: postgres.MeetupsRepo{DB: DB},
-		UsersRepo:   userRepo,
-	}}
+	d := domain.NewDomain(userRepo, postgres.MeetupsRepo{DB: DB})
+	c := graph.Config{Resolvers: &graph.Resolver{Domain: d}}
 	queryHandler := handler.NewDefaultServer(graph.NewExecutableSchema(c))
 
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
